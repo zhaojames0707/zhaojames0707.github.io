@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Mkdocs on Mission Namek</title>
+    <link>http://zhaojames0707.github.io/tags/mkdocs/</link>
+    <description>Recent content in Mkdocs on Mission Namek</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-CN</language>
+    <copyright>All rights reserved - 2016</copyright>
+    <lastBuildDate>Tue, 21 Jun 2016 18:18:00 +0800</lastBuildDate>
+    <atom:link href="http://zhaojames0707.github.io/tags/mkdocs/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>在 MkDocs 中使用时序图及流程图</title>
+      <link>http://zhaojames0707.github.io/post/mkdocs_diagram_support/</link>
+      <pubDate>Tue, 21 Jun 2016 18:18:00 +0800</pubDate>
+      
+      <guid>http://zhaojames0707.github.io/post/mkdocs_diagram_support/</guid>
+      <description>
+
+&lt;p&gt;MkDocs 是非常方便的文档展示工具，但是原生不支持将 markdown 文档中的 sequence 及 flow 代码转换为时序图/流程图。
+通过以下简单的3步，即可在不改变 markdown 文档的情况下，将时序图和流程图绘制出来。&lt;/p&gt;
+
+&lt;h4 id=&#34;一-安装-pymdown-extensions:6da0e2d7c435d5f1a97cfa4adcf47a20&#34;&gt;一、安装 PyMdown Extensions:&lt;/h4&gt;
+
+&lt;p&gt;PyMdown Extension 为 Python Markdown 提供了丰富的拓展，其中的 superfences 模块能支持 sequence/flow 图。
+在终端执行：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;pip install pymdown-extensions
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;安装完成后，在 MkDocs 项目的 mkdocs.yml 中添加：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;markdown_extensions:
+    - pymdownx.superfences
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;二-引入-javascript-库:6da0e2d7c435d5f1a97cfa4adcf47a20&#34;&gt;二、引入 JavaScript 库&lt;/h4&gt;
+
+&lt;p&gt;绘制流程图需要以下两个库：&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://bramp.github.io/js-sequence-diagrams/js/raphael-min.js&#34;&gt;raphael.js&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://flowchart.js.org/flowchart-latest.js&#34;&gt;flowchart.js&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;绘制时序图需要以下三个库：&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://bramp.github.io/js-sequence-diagrams/js/raphael-min.js&#34;&gt;raphael.js&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://bramp.github.io/js-sequence-diagrams/js/underscore-min.js&#34;&gt;underscore.js&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://bramp.github.io/js-sequence-diagrams/js/sequence-diagram-min.js&#34;&gt;sequence-diagram.js&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;引入方法很简单，添加到 mkdocs.yml 的 extra_javascript 属性即可，例子如下：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;extra_javascript:
+    - https://bramp.github.io/js-sequence-diagrams/js/raphael-min.js
+    - https://bramp.github.io/js-sequence-diagrams/js/underscore-min.js
+    - https://bramp.github.io/js-sequence-diagrams/js/sequence-diagram-min.js
+    - http://flowchart.js.org/flowchart-latest.js
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;也可以将 js 下载到本地，放到项目文件夹的 docs/js 文件夹下，引入例子：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;extra_javascript:
+	- js/raphael-min.js
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;三-引入三个-javascript-文件:6da0e2d7c435d5f1a97cfa4adcf47a20&#34;&gt;三、引入三个 JavaScript 文件&lt;/h4&gt;
+
+&lt;p&gt;引入 js 库以后，还需要三个 js 文件。它们的作用是定位到目标 HTML 元素，调用对应的 JS 库，最终绘制成所需要的图。&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;uml-converter.js&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;(function (win, doc) {
+  win.convertUML = function(className, converter, settings) {
+    var charts = doc.querySelectorAll(&amp;quot;pre.&amp;quot; + className),
+        arr = [],
+        i, j, maxItem, diagaram, text, curNode;
+
+    // Is there a settings object?
+    if (settings === void 0) {
+        settings = {};
+    }
+
+    // Make sure we are dealing with an array
+    for(i = 0, maxItem = charts.length; i &amp;lt; maxItem; i++) arr.push(charts[i])
+
+    // Find the UML source element and get the text
+    for (i = 0, maxItem = arr.length; i &amp;lt; maxItem; i++) {
+        childEl = arr[i].firstChild;
+        parentEl = childEl.parentNode;
+        text = &amp;quot;&amp;quot;;
+        for (j = 0; j &amp;lt; childEl.childNodes.length; j++) {
+            curNode = childEl.childNodes[j];
+            whitespace = /^\s*$/;
+            if (curNode.nodeName === &amp;quot;#text&amp;quot; &amp;amp;&amp;amp; !(whitespace.test(curNode.nodeValue))) {
+                text = curNode.nodeValue;
+                break;
+            }
+        }
+
+        // Do UML conversion and replace source
+        el = doc.createElement(&#39;div&#39;);
+        el.className = className;
+        parentEl.parentNode.insertBefore(el, parentEl);
+        parentEl.parentNode.removeChild(parentEl);
+        diagram = converter.parse(text);
+        diagram.drawSVG(el, settings);
+    }
+  }
+})(window, document)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;ul&gt;
+&lt;li&gt;flow-loader.js&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;(function (doc) {
+  function onReady(fn) {
+    if (doc.addEventListener) {
+      doc.addEventListener(&#39;DOMContentLoaded&#39;, fn);
+    } else {
+      doc.attachEvent(&#39;onreadystatechange&#39;, function() {
+        if (doc.readyState === &#39;interactive&#39;)
+          fn();
+      });
+    }
+  }
+
+  onReady(function(){convertUML(&#39;uml-flowchart&#39;, flowchart);});
+})(document)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;ul&gt;
+&lt;li&gt;sequence-loader.js&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;(function (doc) {
+  function onReady(fn) {
+    if (doc.addEventListener) {
+      doc.addEventListener(&#39;DOMContentLoaded&#39;, fn);
+    } else {
+      doc.attachEvent(&#39;onreadystatechange&#39;, function() {
+        if (doc.readyState === &#39;interactive&#39;)
+          fn();
+      });
+    }
+  }
+
+  onReady(function(){convertUML(&#39;uml-sequence-diagram&#39;, Diagram, {theme: &#39;simple&#39;});});
+})(document)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;将以上三个 js 保存至项目文件夹的 docs/js 文件夹内，并在 mkdocs.yml 中引入。引入方法同步骤二。
+至此已经大功告成，此后使用 mkdocs serve 则能将 markdown 文档中的：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;```flow
+xxx
+```
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;以及&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;```sequence
+xxx
+```
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;自动渲染成流程图和时序图。&lt;/p&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>
