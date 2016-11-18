@@ -5,26 +5,28 @@
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 
-  	<meta property="og:title" content=" 解决 django 中 mysql gone away 的问题 &middot;  Mission Namek" />
+  	<meta property="og:title" content=" 在 Ubuntu 16.04 中使用 QQ。 &middot;  Mission Namek" />
   	<meta property="og:site_name" content="Mission Namek" />
-  	<meta property="og:url" content="http://zhaojames0707.github.io/post/django_mysql_gone_away/" />
+  	<meta property="og:url" content="http://zhaojames0707.github.io/post/ubuntu_qq/" />
 
     
   	<meta property="og:type" content="article" />
 
-    <meta property="og:article:published_time" content="2016-06-29T23:22:18&#43;08:00" />
+    <meta property="og:article:published_time" content="2016-11-18T15:46:18&#43;08:00" />
 
     
-    <meta property="og:article:tag" content="python" />
+    <meta property="og:article:tag" content="ubuntu" />
     
-    <meta property="og:article:tag" content="django" />
+    <meta property="og:article:tag" content="QQ" />
     
-    <meta property="og:article:tag" content="mysql" />
+    <meta property="og:article:tag" content="wine" />
+    
+    <meta property="og:article:tag" content="winetricks" />
     
     
 
   <title>
-     解决 django 中 mysql gone away 的问题 &middot;  Mission Namek
+     在 Ubuntu 16.04 中使用 QQ。 &middot;  Mission Namek
   </title>
 
     <meta name="description" content="We live and die by your order, Boss!" />
@@ -48,7 +50,7 @@
     
     <meta name="generator" content="Hugo 0.17" />
 
-    <link rel="canonical" href="http://zhaojames0707.github.io/post/django_mysql_gone_away/" />
+    <link rel="canonical" href="http://zhaojames0707.github.io/post/ubuntu_qq/" />
 
     
 
@@ -122,93 +124,115 @@
   <article class="post post">
 
     <header class="post-header">
-        <h1 class="post-title">解决 django 中 mysql gone away 的问题</h1>
+        <h1 class="post-title">在 Ubuntu 16.04 中使用 QQ。</h1>
         <small></small>
 
         <section class="post-meta">
         
-          <time class="post-date" datetime="2016-06-29T23:22:18&#43;08:00">
-            Jun 29, 2016
+          <time class="post-date" datetime="2016-11-18T15:46:18&#43;08:00">
+            Nov 18, 2016
           </time>
         
          
-          <span class="post-tag small"><a href="http://zhaojames0707.github.io/tags/python/">#python</a></span>
+          <span class="post-tag small"><a href="http://zhaojames0707.github.io/tags/ubuntu/">#ubuntu</a></span>
          
-          <span class="post-tag small"><a href="http://zhaojames0707.github.io/tags/django/">#django</a></span>
+          <span class="post-tag small"><a href="http://zhaojames0707.github.io/tags/qq/">#QQ</a></span>
          
-          <span class="post-tag small"><a href="http://zhaojames0707.github.io/tags/mysql/">#mysql</a></span>
+          <span class="post-tag small"><a href="http://zhaojames0707.github.io/tags/wine/">#wine</a></span>
+         
+          <span class="post-tag small"><a href="http://zhaojames0707.github.io/tags/winetricks/">#winetricks</a></span>
          
         </section>
     </header>
 
     <section class="post-content">
-      <p>最近在项目中，我使用 Django Command 模块写了一个脚本，处理从 MQ 发来的消息，并入库。在测试过程中，程序运行良好，但是在程序上线并运行一段时间后，出现了以下错误：</p>
+      <p></p>
 
-<p></p>
+<p>工作中经常需要使用 QQ，但是众所周知 Linux 下没有官方版的 QQ。还好在 Wine + Winetricks 的帮助下，使用 QQ 不再是难事。</p>
 
-<pre><code class="language-python">OperationalError: (2006, 'MySQL server has gone away')
+<h4 id="1-安装-wine">1. 安装 Wine</h4>
+
+<p>由于系统源中的 Wine 版本可能比较旧，推荐使用 Wine 官方的源。</p>
+
+<p>如果你使用的是64位系统，需要先启用32位架构：</p>
+
+<pre><code>sudo dpkg --add-architecture i386
 </code></pre>
 
-<h3 id="发现问题">发现问题</h3>
+<p>然后添加源：</p>
 
-<p>经过一段时间的排查后，我发现了问题的原因：因为我要入库的消息并不频繁，所以我的程序的入库操作之间可能会间隔一段时间，而当这段时间大于 MySQL 配置的超时时间后，MySQL 便会主动断开与该程序的连接；此时，程序做数据库相关操作，则会发现数据库连接已经失效，因而报 <code>MySQL server has gone away</code>的异常。</p>
-
-<p>查看 MySQL 配置的超时时间方法为：</p>
-
-<pre><code>show variables like 'wait_timeout';
+<pre><code>sudo add-apt-repository ppa:wine/wine-builds
 </code></pre>
 
-<h3 id="分析问题">分析问题</h3>
+<p>更新：</p>
 
-<p>在网上搜索相关问题后，我发现有很多人问过相关问题，而 Django 官网的这个<a href="https://code.djangoproject.com/ticket/21597#comment:29">讨论</a>，给了我很大帮助。</p>
-
-<p>处理方法有两个：</p>
-
-<p>1) 每次调用完 Model 后，手动关闭 connection</p>
-
-<pre><code class="language-python">from django.db import connection
-
-connection.close()
+<pre><code>sudo apt-get update
 </code></pre>
 
-<p>2) 调整数据库的超时时间(不推荐！)</p>
+<p>安装 Wine：</p>
 
-<p>但是，这两个都不适合我的程序：</p>
-
-<ul>
-<li>方法1是针对 Model 操作间隔一定很长的情况，如果某个时间段内需要很频繁的操作数据库，那么频繁关闭-新建数据库连接无疑是低效的。而且，connection 是与默认的数据库的连接，即 settings 中定义的 default 数据库。如果项目配置了多个数据库(列如主从数据库)，那么 <code>connection.close()</code>则不能与关闭其他数据库的连接，问题仍未解决。</li>
-<li>方法2直接修改数据库超时时间，很容易影响别的服务，会带来很多潜在的问题。</li>
-</ul>
-
-<p>针对我的情况，我参考了 Django 源码涉及数据库连接维护的部分。</p>
-
-<p>在 <code>django.db.__init__.py</code> 中，有以下代码片段:</p>
-
-<pre><code class="language-python"># Register an event to reset transaction state and close connections past
-# their lifetime.
-def close_old_connections(**kwargs):
-    for conn in connections.all():
-        conn.close_if_unusable_or_obsolete()
-signals.request_started.connect(close_old_connections)
-signals.request_finished.connect(close_old_connections)
+<pre><code>sudo apt-get install --install-recommends winehq-devel
 </code></pre>
 
-<p>可见，Django 将<strong>请求开始</strong>和<strong>请求结束</strong>信号绑定给了 <code>close_old_connections</code>函数，每当有请求开始和结束以后，Django 都会检查目前有没有失效的连接，如果有的话就将其关闭。通过这种办法，Django 保证处理请求时，数据库连接都是可用的，不会出现我遇到的问题；而我的程序在涉及 Model 操作时，没有检查连接的有效性，因而出现了题目中的错误。</p>
+<p>以上内容来自 Wine 官方 Wiki：<a href="https://wiki.winehq.org/Ubuntu">https://wiki.winehq.org/Ubuntu</a></p>
 
-<h3 id="解决问题">解决问题</h3>
+<h4 id="2-安装-winetricks-zh">2. 安装 Winetricks-zh</h4>
 
-<p>在定位到问题且知道处理方法后，接下来的工作就非常简单了。
-仿照上述代码，定义函数：</p>
+<p>Winetricks 是一个脚本，能很方便的下载 Windows 程序所需的库文件，并对已知问题提供了 work around，非常方便；Winetricks-zh 在 Winetricks 的基础上，提供了很多国内常用软件的支持（例如QQ）。</p>
 
-<pre><code class="language-python">from django import connections
+<p>Winetricks-zh 的 GitHub 地址：<a href="https://github.com/hillwoodroc/winetricks-zh">https://github.com/hillwoodroc/winetricks-zh</a></p>
 
+<p>Clone Winetricks-zh 项目：</p>
 
-def close_old_connections():
-    for conn in connections.all():
-        conn.close_if_unusable_or_obsolete()
+<pre><code>git clone git@github.com:hillwoodroc/winetricks-zh.git
 </code></pre>
 
-<p>然后在每次 Model 操作前调用<code>close_old_connections()</code>就解决问题了。</p>
+<p>将 wintricks-zh 放到 /usr/bin/</p>
+
+<pre><code>sudo cp winetricks-zh/winetricks-zh /usr/bin/
+</code></pre>
+
+<h4 id="3-安装-qq">3. 安装 QQ</h4>
+
+<p>命令行输入：</p>
+
+<pre><code>winetricks-zh qq
+</code></pre>
+
+<p>如果是第一次使用 winetricks-zh 的话，可能会需要安装依赖库，在弹出的窗口选择中选择安装即可。</p>
+
+<p>随后 Winetricks-zh 开始安装 QQ，安装过程中会从 <a href="http://web.archive.org">http://web.archive.org</a> 下载 W2KSP4_EN.EXE 和 InstMsiW.exe，而该网站由于不可描述的原因在大陆无法访问。建议先停止安装程序，使用科学上网工具下载到本地，然后：</p>
+
+<pre><code>cp W2KSP4_EN.EXE ~/.cache/winetricks/win2ksp4/
+cp InstMsiW.exe ~/.cache/winetricks/msls31/
+</code></pre>
+
+<p>完成后，再次执行：</p>
+
+<pre><code>winetricks-zh qq
+</code></pre>
+
+<p>正常的话接下来会弹出 QQ 安装窗口，有可能中文会是方框，不用担心，安装即可。</p>
+
+<p>安装完成后，按下 Win 键，在搜索框中输入 QQ 便会出现 QQ 的启动程序，点击启动即可运行。</p>
+
+<p>至此已基本完成，但是在对话窗口的输入框内输入中文时，文字会变成方框，文字发出后恢复正常。</p>
+
+<h4 id="4-解决输入框显示问题">4. 解决输入框显示问题</h4>
+
+<p>首先在终端中输入：</p>
+
+<pre><code>export LC_ALL=zh_CN.UTF-8
+</code></pre>
+
+<p>如果有报错，则需要安装中文语言包：</p>
+
+<pre><code>sudo apt-get -y install language-pack-zh-hans
+</code></pre>
+
+<p>然后编辑 QQ 的启动器文件，该文件位于<code>~/.local/share/applications/wine/Programs/腾讯软件/QQ/腾讯QQ.desktop</code>，将<code>Exec=env WINEPRFIX...</code>改为<code>Exce=env LC_ALL=zh_CN.UTF-8 WINEPRFIX...</code>，保存，然后再次启动 QQ，问题应该解决了。</p>
+
+<p>已知问题：查看讨论组的历史消息，会导致 QQ 崩溃，这个问题有待以后解决。</p>
     </section>
 
 
@@ -243,19 +267,19 @@ def close_old_connections():
     
 <section class="share">
   <h4>Share this post</h4>
-  <a class="icon-twitter" style="font-size: 1.4em" href="https://twitter.com/share?text=%e8%a7%a3%e5%86%b3%20django%20%e4%b8%ad%20mysql%20gone%20away%20%e7%9a%84%e9%97%ae%e9%a2%98&amp;url=http%3a%2f%2fzhaojames0707.github.io%2fpost%2fdjango_mysql_gone_away%2f"
+  <a class="icon-twitter" style="font-size: 1.4em" href="https://twitter.com/share?text=%e5%9c%a8%20Ubuntu%2016.04%20%e4%b8%ad%e4%bd%bf%e7%94%a8%20QQ%e3%80%82&amp;url=http%3a%2f%2fzhaojames0707.github.io%2fpost%2fubuntu_qq%2f"
       onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
       <span class="hidden">Twitter</span>
   </a>
-  <a class="icon-facebook" style="font-size: 1.4em" href="https://www.facebook.com/sharer/sharer.php?u=http%3a%2f%2fzhaojames0707.github.io%2fpost%2fdjango_mysql_gone_away%2f"
+  <a class="icon-facebook" style="font-size: 1.4em" href="https://www.facebook.com/sharer/sharer.php?u=http%3a%2f%2fzhaojames0707.github.io%2fpost%2fubuntu_qq%2f"
       onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;">
       <span class="hidden">Facebook</span>
   </a>
-  <a class="icon-pinterest" style="font-size: 1.4em" href="http://pinterest.com/pin/create/button/?url=http%3a%2f%2fzhaojames0707.github.io%2fpost%2fdjango_mysql_gone_away%2f&amp;description=%e8%a7%a3%e5%86%b3%20django%20%e4%b8%ad%20mysql%20gone%20away%20%e7%9a%84%e9%97%ae%e9%a2%98"
+  <a class="icon-pinterest" style="font-size: 1.4em" href="http://pinterest.com/pin/create/button/?url=http%3a%2f%2fzhaojames0707.github.io%2fpost%2fubuntu_qq%2f&amp;description=%e5%9c%a8%20Ubuntu%2016.04%20%e4%b8%ad%e4%bd%bf%e7%94%a8%20QQ%e3%80%82"
       onclick="window.open(this.href, 'pinterest-share','width=580,height=296');return false;">
       <span class="hidden">Pinterest</span>
   </a>
-  <a class="icon-google-plus" style="font-size: 1.4em" href="https://plus.google.com/share?url=http%3a%2f%2fzhaojames0707.github.io%2fpost%2fdjango_mysql_gone_away%2f"
+  <a class="icon-google-plus" style="font-size: 1.4em" href="https://plus.google.com/share?url=http%3a%2f%2fzhaojames0707.github.io%2fpost%2fubuntu_qq%2f"
      onclick="window.open(this.href, 'google-plus-share', 'width=490,height=530');return false;">
       <span class="hidden">Google+</span>
   </a>
@@ -268,7 +292,7 @@ def close_old_connections():
 <div id="disqus_thread"></div>
 <script type="text/javascript">
   var disqus_shortname = 'missionnamek';
-  var disqus_url = 'http:\/\/zhaojames0707.github.io\/post\/django_mysql_gone_away\/';
+  var disqus_url = 'http:\/\/zhaojames0707.github.io\/post\/ubuntu_qq\/';
   (function() {
     var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
     dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
