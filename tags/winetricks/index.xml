@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Mission Namek</title>
-    <link>http://zhaojames0707.github.io/tags/winetricks/index.xml</link>
-    <description>Recent content on Mission Namek</description>
+    <title>Winetricks on Mission Namek</title>
+    <link>https://zhaojames0707.github.io/tags/winetricks/index.xml</link>
+    <description>Recent content in Winetricks on Mission Namek</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>All rights reserved - 2016</copyright>
-    <atom:link href="http://zhaojames0707.github.io/tags/winetricks/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="https://zhaojames0707.github.io/tags/winetricks/index.xml" rel="self" type="application/rss+xml" />
     
     <item>
-      <title>在 Ubuntu 16.04 中使用 QQ。</title>
-      <link>http://zhaojames0707.github.io/post/ubuntu_qq/</link>
+      <title>在 Ubuntu 16.04 中使用 QQ</title>
+      <link>https://zhaojames0707.github.io/post/ubuntu_qq/</link>
       <pubDate>Fri, 18 Nov 2016 15:46:18 +0800</pubDate>
       
-      <guid>http://zhaojames0707.github.io/post/ubuntu_qq/</guid>
+      <guid>https://zhaojames0707.github.io/post/ubuntu_qq/</guid>
       <description>&lt;p&gt;&lt;/p&gt;
 
 &lt;p&gt;工作中经常需要使用 QQ，但是众所周知 Linux 下没有官方版的 QQ。还好在 Wine + Winetricks 的帮助下，使用 QQ 不再是难事。&lt;/p&gt;

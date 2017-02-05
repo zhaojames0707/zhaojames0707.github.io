@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Mission Namek</title>
-    <link>http://zhaojames0707.github.io/tags/mysql/index.xml</link>
-    <description>Recent content on Mission Namek</description>
+    <title>Mysql on Mission Namek</title>
+    <link>https://zhaojames0707.github.io/tags/mysql/index.xml</link>
+    <description>Recent content in Mysql on Mission Namek</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>All rights reserved - 2016</copyright>
-    <atom:link href="http://zhaojames0707.github.io/tags/mysql/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="https://zhaojames0707.github.io/tags/mysql/index.xml" rel="self" type="application/rss+xml" />
     
     <item>
       <title>解决 django 中 mysql gone away 的问题</title>
-      <link>http://zhaojames0707.github.io/post/django_mysql_gone_away/</link>
+      <link>https://zhaojames0707.github.io/post/django_mysql_gone_away/</link>
       <pubDate>Wed, 29 Jun 2016 23:22:18 +0800</pubDate>
       
-      <guid>http://zhaojames0707.github.io/post/django_mysql_gone_away/</guid>
+      <guid>https://zhaojames0707.github.io/post/django_mysql_gone_away/</guid>
       <description>&lt;p&gt;最近在项目中，我使用 Django Command 模块写了一个脚本，处理从 MQ 发来的消息，并入库。在测试过程中，程序运行良好，但是在程序上线并运行一段时间后，出现了以下错误：&lt;/p&gt;
 
 &lt;p&gt;&lt;/p&gt;
@@ -73,7 +73,7 @@ signals.request_finished.connect(close_old_connections)
 &lt;p&gt;在定位到问题且知道处理方法后，接下来的工作就非常简单了。
 仿照上述代码，定义函数：&lt;/p&gt;
 
-&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django import connections
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.db import connections
 
 
 def close_old_connections():

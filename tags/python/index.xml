@@ -1,20 +1,143 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Mission Namek</title>
-    <link>http://zhaojames0707.github.io/tags/python/index.xml</link>
-    <description>Recent content on Mission Namek</description>
+    <title>Python on Mission Namek</title>
+    <link>https://zhaojames0707.github.io/tags/python/index.xml</link>
+    <description>Recent content in Python on Mission Namek</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>All rights reserved - 2016</copyright>
-    <atom:link href="http://zhaojames0707.github.io/tags/python/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="https://zhaojames0707.github.io/tags/python/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>探究 Django 数据库连接</title>
+      <link>https://zhaojames0707.github.io/post/django_db_connection/</link>
+      <pubDate>Sun, 05 Feb 2017 21:11:00 +0800</pubDate>
+      
+      <guid>https://zhaojames0707.github.io/post/django_db_connection/</guid>
+      <description>&lt;p&gt;公司的 Django 项目中遇到了数据库连接方面的问题，引发了我对 Django 数据库连接内部实现的关注。
+&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;本文使用的 django 版本为 1.8.2，gunicorn 版本为19.6.0&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;Django 会根据&lt;code&gt;settings&lt;/code&gt;中&lt;code&gt;DATABASES&lt;/code&gt;的配置，对每个数据库创建一个&lt;code&gt;DatabaseWrapper&lt;/code&gt;实例，并将与该数据库的连接存放到实例的&lt;code&gt;connection&lt;/code&gt;属性中。&lt;/p&gt;
+
+&lt;p&gt;Django 对支持的每种数据库&lt;code&gt;backend&lt;/code&gt;都有不同的&lt;code&gt;DatabaseWrapper&lt;/code&gt;实现（例如 MySQL 的实现类在&lt;code&gt;django.db.backends.mysql.base&lt;/code&gt;模块中），但均继承自&lt;code&gt;django.db.backends.base.base.BaseDatabaseWrapper&lt;/code&gt;。&lt;/p&gt;
+
+&lt;p&gt;参考&lt;a href=&#34;https://www.the5fire.com/reduce-db-conn-with-django-persistent-connection.html&#34;&gt;文章&lt;/a&gt;，Django 会把当前线程建立的若干个&lt;code&gt;DatabaseWrapper&lt;/code&gt;对象存放在&lt;code&gt;ThreadLocal&lt;/code&gt;中，并在每次请求开始和结束时进行以下过程：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;def close_old_connections(**kwargs):
+    for conn in connections.all():
+        conn.close_if_unusable_or_obsolete()
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;方法&lt;code&gt;close_if_unusable_or_obsolete&lt;/code&gt;定义在&lt;code&gt;BaseDatabaseWrapper&lt;/code&gt;中：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;    def close_if_unusable_or_obsolete(self):
+        &amp;quot;&amp;quot;&amp;quot;
+        Closes the current connection if unrecoverable errors have occurred,
+        or if it outlived its maximum age.
+        &amp;quot;&amp;quot;&amp;quot;
+        if self.connection is not None:
+            # If the application didn&#39;t restore the original autocommit setting,
+            # don&#39;t take chances, drop the connection.
+            if self.get_autocommit() != self.settings_dict[&#39;AUTOCOMMIT&#39;]:
+                self.close()
+                return
+
+            # If an exception other than DataError or IntegrityError occurred
+            # since the last commit / rollback, check if the connection works.
+            if self.errors_occurred:
+                # MySQL 的判断逻辑时调用 ping 方法，如果出现异常则连接不可用，需要关闭。
+                if self.is_usable():
+                    self.errors_occurred = False
+                else:
+                    self.close()
+                    return
+
+            if self.close_at is not None and time.time() &amp;gt;= self.close_at:
+                # 连接建立时，Django 读取数据库配置中的 CONN_MAX_AGE 参数，
+                # 如果不为 None (连接永久有效)，则取当时时间 + CONN_MAX_AGE，作为连接过期的时间。
+                self.close()
+                return
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;可见，对于一个线程，如果其数据库连接没有出现异常（除了&lt;code&gt;DataError&lt;/code&gt;和&lt;code&gt;IntegrityError&lt;/code&gt;），则 Django 不会实际 ping 数据库，而只会根据配置中的&lt;code&gt;CONN_MAX_AGE&lt;/code&gt;决定是否需要关闭连接。&lt;/p&gt;
+
+&lt;p&gt;然而根据上述逻辑进行实验时，却出现了奇怪的现象：&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;settings 中配置 CONN_MAX_AGE 为 600&lt;/li&gt;
+&lt;li&gt;view 的逻辑：&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;class Test(APIView):
+
+    def get(self, request):
+        print(threading.get_ident())  # 打印当前线程ID
+        list(models.Foo.objects.all())  # 实际访问数据库
+        return Response()
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;ul&gt;
+&lt;li&gt;使用 gunicorn 启动，worker 数量为2：&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;pre&gt;&lt;code&gt;gunicorn db_test.wsgi:application -w 2 -b 0.0.0.0:8000 -k gevent
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;ul&gt;
+&lt;li&gt;在建立数据库连接的位置 print（修改&lt;code&gt;BaseDatabaseWrapper&lt;/code&gt;的&lt;code&gt;get_new_connection&lt;/code&gt;方法）：&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;    def get_new_connection(self, conn_params):
+        conn = Database.connect(**conn_params)
+        conn.encoders[SafeText] = conn.encoders[six.text_type]
+        conn.encoders[SafeBytes] = conn.encoders[bytes]
+        print(&amp;quot;get_new_connection!&amp;quot;, conn)  # 此处 print
+        return conn
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;随后重复请求 view，输出结果如下：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;4556769432  # worker1
+get_new_connection! &amp;lt;_mysql.connection open to &#39;127.0.0.1&#39; at 7fe4051ca418&amp;gt;
+4556769432
+...  # 略去重复部分
+4556769432
+4556769432
+4556769432
+4556769432
+4544925168  # worker2
+get_new_connection! &amp;lt;_mysql.connection open to &#39;127.0.0.1&#39; at 7fe40685cc18&amp;gt;
+4544925168
+4544925168
+4544925168
+4544925168
+4544925168
+4556769432  # worker1
+get_new_connection! &amp;lt;_mysql.connection open to &#39;127.0.0.1&#39; at 7fe405ab6618&amp;gt;
+4556769432
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;可以看出：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;一开始请求被调度到 worker1，worker1 与数据库建立了连接&lt;strong&gt;（符合预期）&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;接下来的请求仍被调度到 worker1，worker1 没有重新建立数据库连接&lt;strong&gt;（符合预期）&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;一段时间后 gunicorn 将请求调度到 worker2，worker2 与数据库建立了连接&lt;strong&gt;（符合预期）&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;之后新的请求再次被调度到 worker1，然而 worker1 又重新与数据库建立了连接&lt;strong&gt;（不符合预期）&lt;/strong&gt;&lt;/li&gt;
+&lt;/ol&gt;</description>
+    </item>
     
     <item>
       <title>解决 django 中 mysql gone away 的问题</title>
-      <link>http://zhaojames0707.github.io/post/django_mysql_gone_away/</link>
+      <link>https://zhaojames0707.github.io/post/django_mysql_gone_away/</link>
       <pubDate>Wed, 29 Jun 2016 23:22:18 +0800</pubDate>
       
-      <guid>http://zhaojames0707.github.io/post/django_mysql_gone_away/</guid>
+      <guid>https://zhaojames0707.github.io/post/django_mysql_gone_away/</guid>
       <description>&lt;p&gt;最近在项目中，我使用 Django Command 模块写了一个脚本，处理从 MQ 发来的消息，并入库。在测试过程中，程序运行良好，但是在程序上线并运行一段时间后，出现了以下错误：&lt;/p&gt;
 
 &lt;p&gt;&lt;/p&gt;
@@ -73,7 +196,7 @@ signals.request_finished.connect(close_old_connections)
 &lt;p&gt;在定位到问题且知道处理方法后，接下来的工作就非常简单了。
 仿照上述代码，定义函数：&lt;/p&gt;
 
-&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django import connections
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.db import connections
 
 
 def close_old_connections():
@@ -86,10 +209,10 @@ def close_old_connections():
     
     <item>
       <title>在 MkDocs 中使用时序图及流程图</title>
-      <link>http://zhaojames0707.github.io/post/mkdocs_diagram_support/</link>
+      <link>https://zhaojames0707.github.io/post/mkdocs_diagram_support/</link>
       <pubDate>Tue, 21 Jun 2016 18:18:00 +0800</pubDate>
       
-      <guid>http://zhaojames0707.github.io/post/mkdocs_diagram_support/</guid>
+      <guid>https://zhaojames0707.github.io/post/mkdocs_diagram_support/</guid>
       <description>&lt;p&gt;MkDocs 是非常方便的文档展示工具，但是原生不支持将 markdown 文档中的 sequence 及 flow 代码转换为时序图/流程图。
 通过以下简单的3步，即可在不改变 markdown 文档的情况下，将时序图和流程图绘制出来。&lt;/p&gt;
 
