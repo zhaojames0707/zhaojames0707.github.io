@@ -2,12 +2,15 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Keepass on Mission Namek</title>
-    <link>https://zhaojames0707.github.io/tags/keepass/index.xml</link>
+    <link>https://zhaojames0707.github.io/tags/keepass/</link>
     <description>Recent content in Keepass on Mission Namek</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>All rights reserved - 2016</copyright>
-    <atom:link href="https://zhaojames0707.github.io/tags/keepass/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Mon, 08 Aug 2016 10:02:18 +0800</lastBuildDate>
+    
+	<atom:link href="https://zhaojames0707.github.io/tags/keepass/index.xml" rel="self" type="application/rss+xml" />
+    
     
     <item>
       <title>解决 Ubuntu 下 KeePass2 中文显示为方块的问题</title>
@@ -17,39 +20,7 @@
       <guid>https://zhaojames0707.github.io/post/ubuntu_keepass2/</guid>
       <description>&lt;p&gt;最近开始使用 KeePass2，遇到了中文显示为方块的问题。&lt;/p&gt;
 
-&lt;p&gt;&lt;/p&gt;
-
-&lt;p&gt;最近我的京东和支付宝接连被人登陆，使我不得不重视起密码安全问题，下定决心使用密码管理软件，自动生成并记录强密码。&lt;/p&gt;
-
-&lt;p&gt;在了解了市面上的若干个密码管理软件以后，我选择了 KeePass2，因为它支持多平台，并且开源。我在 Mac 上使用 MacPass，iPhone 上使用 MiniKeePass，Ubuntu上则使用 KeePass2。&lt;/p&gt;
-
-&lt;p&gt;一开始一切正常，直到我在 KeePass2 上输入了中文，中文均显示为方块。在网上参考了众多讨论后，我找到了在我电脑上的解决办法。
-&lt;strong&gt;注&lt;/strong&gt;: 我的系统是 Ubuntu 16.04 64-bit，KeePass 版本为 2.34。&lt;/p&gt;
-
-&lt;h4 id=&#34;1-下载-keepass2-语言包&#34;&gt;1. 下载 KeePass2 语言包&lt;/h4&gt;
-
-&lt;p&gt;KeePass 的&lt;a href=&#34;http://keepass.info/translations.html&#34;&gt;官网&lt;/a&gt;提供了各种语言的语言包，下载中文2.x版本语言包后解压到&lt;code&gt;~/.local/share/KeePass/&lt;/code&gt;目录下，重启 KeePass 后设置 View-&amp;gt;Change Language，选择 Simplified Chinese 即可。&lt;/p&gt;
-
-&lt;h4 id=&#34;2-修改启动脚本&#34;&gt;2. 修改启动脚本&lt;/h4&gt;
-
-&lt;p&gt;参考&lt;a href=&#34;http://wenliangcan.github.io/blog/2014/04/20/keepass-cjk-fonts-displaying/&#34;&gt;博客&lt;/a&gt;，修改&lt;code&gt;/usr/bin/keepass2&lt;/code&gt;，加入&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;export LANG=zh_CN.utf8
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h4 id=&#34;3-修改系统字体设置&#34;&gt;3. 修改系统字体设置&lt;/h4&gt;
-
-&lt;p&gt;参考&lt;a href=&#34;http://forum.ubuntu.org.cn/viewtopic.php?f=8&amp;amp;t=473678&#34;&gt;FAQ&lt;/a&gt;，修改&lt;code&gt;/etc/fonts/conf.avail/65-nonlatin.conf&lt;/code&gt;，添加&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-xml&#34;&gt;   &amp;lt;alias&amp;gt;
-      &amp;lt;family&amp;gt;Ubuntu&amp;lt;/family&amp;gt;
-      &amp;lt;prefer&amp;gt;
-         &amp;lt;family&amp;gt;sans-serif&amp;lt;/family&amp;gt;
-      &amp;lt;/prefer&amp;gt;
-   &amp;lt;/alias&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;在进行上述操作后，重启 KeePass2，应该就可以正常显示中文了。&lt;/p&gt;</description>
+&lt;p&gt;&lt;/p&gt;</description>
     </item>
     
   </channel>

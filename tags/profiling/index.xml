@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Profiling on Mission Namek</title>
+    <link>https://zhaojames0707.github.io/tags/profiling/</link>
+    <description>Recent content in Profiling on Mission Namek</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-CN</language>
+    <copyright>All rights reserved - 2016</copyright>
+    <lastBuildDate>Thu, 07 Dec 2017 12:18:45 +0800</lastBuildDate>
+    
+	<atom:link href="https://zhaojames0707.github.io/tags/profiling/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Django 项目性能分析工具</title>
+      <link>https://zhaojames0707.github.io/post/django_profiling/</link>
+      <pubDate>Thu, 07 Dec 2017 12:18:45 +0800</pubDate>
+      
+      <guid>https://zhaojames0707.github.io/post/django_profiling/</guid>
+      <description>&lt;p&gt;公司项目的IM应用，在人数较多的群聊中发信出现了性能问题，本文提供了分析服务性能的工具。&lt;/p&gt;
+
+&lt;p&gt;&lt;/p&gt;</description>
+    </item>
+    
+  </channel>
+</rss>

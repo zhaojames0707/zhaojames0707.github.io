@@ -2,13 +2,26 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Mission Namek</title>
-    <link>https://zhaojames0707.github.io/index.xml</link>
+    <link>https://zhaojames0707.github.io/</link>
     <description>Recent content on Mission Namek</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>All rights reserved - 2016</copyright>
-    <lastBuildDate>Sun, 05 Feb 2017 21:11:00 +0800</lastBuildDate>
-    <atom:link href="https://zhaojames0707.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Thu, 07 Dec 2017 12:18:45 +0800</lastBuildDate>
+    
+	<atom:link href="https://zhaojames0707.github.io/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Django 项目性能分析工具</title>
+      <link>https://zhaojames0707.github.io/post/django_profiling/</link>
+      <pubDate>Thu, 07 Dec 2017 12:18:45 +0800</pubDate>
+      
+      <guid>https://zhaojames0707.github.io/post/django_profiling/</guid>
+      <description>&lt;p&gt;公司项目的IM应用，在人数较多的群聊中发信出现了性能问题，本文提供了分析服务性能的工具。&lt;/p&gt;
+
+&lt;p&gt;&lt;/p&gt;</description>
+    </item>
     
     <item>
       <title>探究 Django 数据库连接</title>
@@ -17,120 +30,7 @@
       
       <guid>https://zhaojames0707.github.io/post/django_db_connection/</guid>
       <description>&lt;p&gt;公司的 Django 项目中遇到了数据库连接方面的问题，引发了我对 Django 数据库连接内部实现的关注。
-&lt;/p&gt;
-
-&lt;p&gt;&lt;em&gt;本文使用的 django 版本为 1.8.2，gunicorn 版本为19.6.0&lt;/em&gt;&lt;/p&gt;
-
-&lt;p&gt;Django 会根据&lt;code&gt;settings&lt;/code&gt;中&lt;code&gt;DATABASES&lt;/code&gt;的配置，对每个数据库创建一个&lt;code&gt;DatabaseWrapper&lt;/code&gt;实例，并将与该数据库的连接存放到实例的&lt;code&gt;connection&lt;/code&gt;属性中。&lt;/p&gt;
-
-&lt;p&gt;Django 对支持的每种数据库&lt;code&gt;backend&lt;/code&gt;都有不同的&lt;code&gt;DatabaseWrapper&lt;/code&gt;实现（例如 MySQL 的实现类在&lt;code&gt;django.db.backends.mysql.base&lt;/code&gt;模块中），但均继承自&lt;code&gt;django.db.backends.base.base.BaseDatabaseWrapper&lt;/code&gt;。&lt;/p&gt;
-
-&lt;p&gt;参考&lt;a href=&#34;https://www.the5fire.com/reduce-db-conn-with-django-persistent-connection.html&#34;&gt;文章&lt;/a&gt;，Django 会把当前线程建立的若干个&lt;code&gt;DatabaseWrapper&lt;/code&gt;对象存放在&lt;code&gt;ThreadLocal&lt;/code&gt;中，并在每次请求开始和结束时进行以下过程：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;def close_old_connections(**kwargs):
-    for conn in connections.all():
-        conn.close_if_unusable_or_obsolete()
-
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;方法&lt;code&gt;close_if_unusable_or_obsolete&lt;/code&gt;定义在&lt;code&gt;BaseDatabaseWrapper&lt;/code&gt;中：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;    def close_if_unusable_or_obsolete(self):
-        &amp;quot;&amp;quot;&amp;quot;
-        Closes the current connection if unrecoverable errors have occurred,
-        or if it outlived its maximum age.
-        &amp;quot;&amp;quot;&amp;quot;
-        if self.connection is not None:
-            # If the application didn&#39;t restore the original autocommit setting,
-            # don&#39;t take chances, drop the connection.
-            if self.get_autocommit() != self.settings_dict[&#39;AUTOCOMMIT&#39;]:
-                self.close()
-                return
-
-            # If an exception other than DataError or IntegrityError occurred
-            # since the last commit / rollback, check if the connection works.
-            if self.errors_occurred:
-                # MySQL 的判断逻辑时调用 ping 方法，如果出现异常则连接不可用，需要关闭。
-                if self.is_usable():
-                    self.errors_occurred = False
-                else:
-                    self.close()
-                    return
-
-            if self.close_at is not None and time.time() &amp;gt;= self.close_at:
-                # 连接建立时，Django 读取数据库配置中的 CONN_MAX_AGE 参数，
-                # 如果不为 None (连接永久有效)，则取当时时间 + CONN_MAX_AGE，作为连接过期的时间。
-                self.close()
-                return
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;可见，对于一个线程，如果其数据库连接没有出现异常（除了&lt;code&gt;DataError&lt;/code&gt;和&lt;code&gt;IntegrityError&lt;/code&gt;），则 Django 不会实际 ping 数据库，而只会根据配置中的&lt;code&gt;CONN_MAX_AGE&lt;/code&gt;决定是否需要关闭连接。&lt;/p&gt;
-
-&lt;p&gt;然而根据上述逻辑进行实验时，却出现了奇怪的现象：&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;settings 中配置 CONN_MAX_AGE 为 600&lt;/li&gt;
-&lt;li&gt;view 的逻辑：&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;class Test(APIView):
-
-    def get(self, request):
-        print(threading.get_ident())  # 打印当前线程ID
-        list(models.Foo.objects.all())  # 实际访问数据库
-        return Response()
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;ul&gt;
-&lt;li&gt;使用 gunicorn 启动，worker 数量为2：&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;pre&gt;&lt;code&gt;gunicorn db_test.wsgi:application -w 2 -b 0.0.0.0:8000 -k gevent
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;ul&gt;
-&lt;li&gt;在建立数据库连接的位置 print（修改&lt;code&gt;BaseDatabaseWrapper&lt;/code&gt;的&lt;code&gt;get_new_connection&lt;/code&gt;方法）：&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;    def get_new_connection(self, conn_params):
-        conn = Database.connect(**conn_params)
-        conn.encoders[SafeText] = conn.encoders[six.text_type]
-        conn.encoders[SafeBytes] = conn.encoders[bytes]
-        print(&amp;quot;get_new_connection!&amp;quot;, conn)  # 此处 print
-        return conn
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;随后重复请求 view，输出结果如下：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;4556769432  # worker1
-get_new_connection! &amp;lt;_mysql.connection open to &#39;127.0.0.1&#39; at 7fe4051ca418&amp;gt;
-4556769432
-...  # 略去重复部分
-4556769432
-4556769432
-4556769432
-4556769432
-4544925168  # worker2
-get_new_connection! &amp;lt;_mysql.connection open to &#39;127.0.0.1&#39; at 7fe40685cc18&amp;gt;
-4544925168
-4544925168
-4544925168
-4544925168
-4544925168
-4556769432  # worker1
-get_new_connection! &amp;lt;_mysql.connection open to &#39;127.0.0.1&#39; at 7fe405ab6618&amp;gt;
-4556769432
-
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;可以看出：&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;一开始请求被调度到 worker1，worker1 与数据库建立了连接&lt;strong&gt;（符合预期）&lt;/strong&gt;&lt;/li&gt;
-&lt;li&gt;接下来的请求仍被调度到 worker1，worker1 没有重新建立数据库连接&lt;strong&gt;（符合预期）&lt;/strong&gt;&lt;/li&gt;
-&lt;li&gt;一段时间后 gunicorn 将请求调度到 worker2，worker2 与数据库建立了连接&lt;strong&gt;（符合预期）&lt;/strong&gt;&lt;/li&gt;
-&lt;li&gt;之后新的请求再次被调度到 worker1，然而 worker1 又重新与数据库建立了连接&lt;strong&gt;（不符合预期）&lt;/strong&gt;&lt;/li&gt;
-&lt;/ol&gt;</description>
+&lt;/p&gt;</description>
     </item>
     
     <item>
@@ -139,93 +39,7 @@ get_new_connection! &amp;lt;_mysql.connection open to &#39;127.0.0.1&#39; at 7fe
       <pubDate>Fri, 18 Nov 2016 15:46:18 +0800</pubDate>
       
       <guid>https://zhaojames0707.github.io/post/ubuntu_qq/</guid>
-      <description>&lt;p&gt;&lt;/p&gt;
-
-&lt;p&gt;工作中经常需要使用 QQ，但是众所周知 Linux 下没有官方版的 QQ。还好在 Wine + Winetricks 的帮助下，使用 QQ 不再是难事。&lt;/p&gt;
-
-&lt;h4 id=&#34;1-安装-wine&#34;&gt;1. 安装 Wine&lt;/h4&gt;
-
-&lt;p&gt;由于系统源中的 Wine 版本可能比较旧，推荐使用 Wine 官方的源。&lt;/p&gt;
-
-&lt;p&gt;如果你使用的是64位系统，需要先启用32位架构：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;sudo dpkg --add-architecture i386
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;然后添加源：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;sudo add-apt-repository ppa:wine/wine-builds
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;更新：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;sudo apt-get update
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;安装 Wine：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;sudo apt-get install --install-recommends winehq-devel
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;以上内容来自 Wine 官方 Wiki：&lt;a href=&#34;https://wiki.winehq.org/Ubuntu&#34;&gt;https://wiki.winehq.org/Ubuntu&lt;/a&gt;&lt;/p&gt;
-
-&lt;h4 id=&#34;2-安装-winetricks-zh&#34;&gt;2. 安装 Winetricks-zh&lt;/h4&gt;
-
-&lt;p&gt;Winetricks 是一个脚本，能很方便的下载 Windows 程序所需的库文件，并对已知问题提供了 work around，非常方便；Winetricks-zh 在 Winetricks 的基础上，提供了很多国内常用软件的支持（例如QQ）。&lt;/p&gt;
-
-&lt;p&gt;Winetricks-zh 的 GitHub 地址：&lt;a href=&#34;https://github.com/hillwoodroc/winetricks-zh&#34;&gt;https://github.com/hillwoodroc/winetricks-zh&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;Clone Winetricks-zh 项目：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;git clone git@github.com:hillwoodroc/winetricks-zh.git
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;将 wintricks-zh 放到 /usr/bin/&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;sudo cp winetricks-zh/winetricks-zh /usr/bin/
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h4 id=&#34;3-安装-qq&#34;&gt;3. 安装 QQ&lt;/h4&gt;
-
-&lt;p&gt;命令行输入：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;winetricks-zh qq
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;如果是第一次使用 winetricks-zh 的话，可能会需要安装依赖库，在弹出的窗口选择中选择安装即可。&lt;/p&gt;
-
-&lt;p&gt;随后 Winetricks-zh 开始安装 QQ，安装过程中会从 &lt;a href=&#34;http://web.archive.org&#34;&gt;http://web.archive.org&lt;/a&gt; 下载 W2KSP4_EN.EXE 和 InstMsiW.exe，而该网站由于不可描述的原因在大陆无法访问。建议先停止安装程序，使用科学上网工具下载到本地，然后：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;cp W2KSP4_EN.EXE ~/.cache/winetricks/win2ksp4/
-cp InstMsiW.exe ~/.cache/winetricks/msls31/
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;完成后，再次执行：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;winetricks-zh qq
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;正常的话接下来会弹出 QQ 安装窗口，有可能中文会是方框，不用担心，安装即可。&lt;/p&gt;
-
-&lt;p&gt;安装完成后，按下 Win 键，在搜索框中输入 QQ 便会出现 QQ 的启动程序，点击启动即可运行。&lt;/p&gt;
-
-&lt;p&gt;至此已基本完成，但是在对话窗口的输入框内输入中文时，文字会变成方框，文字发出后恢复正常。&lt;/p&gt;
-
-&lt;h4 id=&#34;4-解决输入框显示问题&#34;&gt;4. 解决输入框显示问题&lt;/h4&gt;
-
-&lt;p&gt;首先在终端中输入：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;export LC_ALL=zh_CN.UTF-8
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;如果有报错，则需要安装中文语言包：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;sudo apt-get -y install language-pack-zh-hans
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;然后编辑 QQ 的启动器文件，该文件位于&lt;code&gt;~/.local/share/applications/wine/Programs/腾讯软件/QQ/腾讯QQ.desktop&lt;/code&gt;，将&lt;code&gt;Exec=env WINEPRFIX...&lt;/code&gt;改为&lt;code&gt;Exce=env LC_ALL=zh_CN.UTF-8 WINEPRFIX...&lt;/code&gt;，保存，然后再次启动 QQ，问题应该解决了。&lt;/p&gt;
-
-&lt;p&gt;已知问题：查看讨论组的历史消息，会导致 QQ 崩溃，这个问题有待以后解决。&lt;/p&gt;</description>
+      <description>&lt;p&gt;&lt;/p&gt;</description>
     </item>
     
     <item>
@@ -236,39 +50,7 @@ cp InstMsiW.exe ~/.cache/winetricks/msls31/
       <guid>https://zhaojames0707.github.io/post/ubuntu_keepass2/</guid>
       <description>&lt;p&gt;最近开始使用 KeePass2，遇到了中文显示为方块的问题。&lt;/p&gt;
 
-&lt;p&gt;&lt;/p&gt;
-
-&lt;p&gt;最近我的京东和支付宝接连被人登陆，使我不得不重视起密码安全问题，下定决心使用密码管理软件，自动生成并记录强密码。&lt;/p&gt;
-
-&lt;p&gt;在了解了市面上的若干个密码管理软件以后，我选择了 KeePass2，因为它支持多平台，并且开源。我在 Mac 上使用 MacPass，iPhone 上使用 MiniKeePass，Ubuntu上则使用 KeePass2。&lt;/p&gt;
-
-&lt;p&gt;一开始一切正常，直到我在 KeePass2 上输入了中文，中文均显示为方块。在网上参考了众多讨论后，我找到了在我电脑上的解决办法。
-&lt;strong&gt;注&lt;/strong&gt;: 我的系统是 Ubuntu 16.04 64-bit，KeePass 版本为 2.34。&lt;/p&gt;
-
-&lt;h4 id=&#34;1-下载-keepass2-语言包&#34;&gt;1. 下载 KeePass2 语言包&lt;/h4&gt;
-
-&lt;p&gt;KeePass 的&lt;a href=&#34;http://keepass.info/translations.html&#34;&gt;官网&lt;/a&gt;提供了各种语言的语言包，下载中文2.x版本语言包后解压到&lt;code&gt;~/.local/share/KeePass/&lt;/code&gt;目录下，重启 KeePass 后设置 View-&amp;gt;Change Language，选择 Simplified Chinese 即可。&lt;/p&gt;
-
-&lt;h4 id=&#34;2-修改启动脚本&#34;&gt;2. 修改启动脚本&lt;/h4&gt;
-
-&lt;p&gt;参考&lt;a href=&#34;http://wenliangcan.github.io/blog/2014/04/20/keepass-cjk-fonts-displaying/&#34;&gt;博客&lt;/a&gt;，修改&lt;code&gt;/usr/bin/keepass2&lt;/code&gt;，加入&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;export LANG=zh_CN.utf8
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h4 id=&#34;3-修改系统字体设置&#34;&gt;3. 修改系统字体设置&lt;/h4&gt;
-
-&lt;p&gt;参考&lt;a href=&#34;http://forum.ubuntu.org.cn/viewtopic.php?f=8&amp;amp;t=473678&#34;&gt;FAQ&lt;/a&gt;，修改&lt;code&gt;/etc/fonts/conf.avail/65-nonlatin.conf&lt;/code&gt;，添加&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-xml&#34;&gt;   &amp;lt;alias&amp;gt;
-      &amp;lt;family&amp;gt;Ubuntu&amp;lt;/family&amp;gt;
-      &amp;lt;prefer&amp;gt;
-         &amp;lt;family&amp;gt;sans-serif&amp;lt;/family&amp;gt;
-      &amp;lt;/prefer&amp;gt;
-   &amp;lt;/alias&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;在进行上述操作后，重启 KeePass2，应该就可以正常显示中文了。&lt;/p&gt;</description>
+&lt;p&gt;&lt;/p&gt;</description>
     </item>
     
     <item>
@@ -279,71 +61,7 @@ cp InstMsiW.exe ~/.cache/winetricks/msls31/
       <guid>https://zhaojames0707.github.io/post/django_mysql_gone_away/</guid>
       <description>&lt;p&gt;最近在项目中，我使用 Django Command 模块写了一个脚本，处理从 MQ 发来的消息，并入库。在测试过程中，程序运行良好，但是在程序上线并运行一段时间后，出现了以下错误：&lt;/p&gt;
 
-&lt;p&gt;&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;OperationalError: (2006, &#39;MySQL server has gone away&#39;)
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id=&#34;发现问题&#34;&gt;发现问题&lt;/h3&gt;
-
-&lt;p&gt;经过一段时间的排查后，我发现了问题的原因：因为我要入库的消息并不频繁，所以我的程序的入库操作之间可能会间隔一段时间，而当这段时间大于 MySQL 配置的超时时间后，MySQL 便会主动断开与该程序的连接；此时，程序做数据库相关操作，则会发现数据库连接已经失效，因而报 &lt;code&gt;MySQL server has gone away&lt;/code&gt;的异常。&lt;/p&gt;
-
-&lt;p&gt;查看 MySQL 配置的超时时间方法为：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;show variables like &#39;wait_timeout&#39;;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id=&#34;分析问题&#34;&gt;分析问题&lt;/h3&gt;
-
-&lt;p&gt;在网上搜索相关问题后，我发现有很多人问过相关问题，而 Django 官网的这个&lt;a href=&#34;https://code.djangoproject.com/ticket/21597#comment:29&#34;&gt;讨论&lt;/a&gt;，给了我很大帮助。&lt;/p&gt;
-
-&lt;p&gt;处理方法有两个：&lt;/p&gt;
-
-&lt;p&gt;1) 每次调用完 Model 后，手动关闭 connection&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.db import connection
-
-connection.close()
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;2) 调整数据库的超时时间(不推荐！)&lt;/p&gt;
-
-&lt;p&gt;但是，这两个都不适合我的程序：&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;方法1是针对 Model 操作间隔一定很长的情况，如果某个时间段内需要很频繁的操作数据库，那么频繁关闭-新建数据库连接无疑是低效的。而且，connection 是与默认的数据库的连接，即 settings 中定义的 default 数据库。如果项目配置了多个数据库(列如主从数据库)，那么 &lt;code&gt;connection.close()&lt;/code&gt;则不能与关闭其他数据库的连接，问题仍未解决。&lt;/li&gt;
-&lt;li&gt;方法2直接修改数据库超时时间，很容易影响别的服务，会带来很多潜在的问题。&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;针对我的情况，我参考了 Django 源码涉及数据库连接维护的部分。&lt;/p&gt;
-
-&lt;p&gt;在 &lt;code&gt;django.db.__init__.py&lt;/code&gt; 中，有以下代码片段:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;# Register an event to reset transaction state and close connections past
-# their lifetime.
-def close_old_connections(**kwargs):
-    for conn in connections.all():
-        conn.close_if_unusable_or_obsolete()
-signals.request_started.connect(close_old_connections)
-signals.request_finished.connect(close_old_connections)
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;可见，Django 将&lt;strong&gt;请求开始&lt;/strong&gt;和&lt;strong&gt;请求结束&lt;/strong&gt;信号绑定给了 &lt;code&gt;close_old_connections&lt;/code&gt;函数，每当有请求开始和结束以后，Django 都会检查目前有没有失效的连接，如果有的话就将其关闭。通过这种办法，Django 保证处理请求时，数据库连接都是可用的，不会出现我遇到的问题；而我的程序在涉及 Model 操作时，没有检查连接的有效性，因而出现了题目中的错误。&lt;/p&gt;
-
-&lt;h3 id=&#34;解决问题&#34;&gt;解决问题&lt;/h3&gt;
-
-&lt;p&gt;在定位到问题且知道处理方法后，接下来的工作就非常简单了。
-仿照上述代码，定义函数：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.db import connections
-
-
-def close_old_connections():
-    for conn in connections.all():
-        conn.close_if_unusable_or_obsolete()
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;然后在每次 Model 操作前调用&lt;code&gt;close_old_connections()&lt;/code&gt;就解决问题了。&lt;/p&gt;</description>
+&lt;p&gt;&lt;/p&gt;</description>
     </item>
     
     <item>
@@ -355,167 +73,7 @@ def close_old_connections():
       <description>&lt;p&gt;MkDocs 是非常方便的文档展示工具，但是原生不支持将 markdown 文档中的 sequence 及 flow 代码转换为时序图/流程图。
 通过以下简单的3步，即可在不改变 markdown 文档的情况下，将时序图和流程图绘制出来。&lt;/p&gt;
 
-&lt;p&gt;&lt;/p&gt;
-
-&lt;h4 id=&#34;一-安装-pymdown-extensions&#34;&gt;一、安装 PyMdown Extensions:&lt;/h4&gt;
-
-&lt;p&gt;PyMdown Extension 为 Python Markdown 提供了丰富的拓展，其中的 superfences 模块能支持 sequence/flow 图。
-在终端执行：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;pip install pymdown-extensions
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;安装完成后，在 MkDocs 项目的 mkdocs.yml 中添加：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;markdown_extensions:
-    - pymdownx.superfences
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h4 id=&#34;二-引入-javascript-库&#34;&gt;二、引入 JavaScript 库&lt;/h4&gt;
-
-&lt;p&gt;绘制流程图需要以下两个库：&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;a href=&#34;https://bramp.github.io/js-sequence-diagrams/js/raphael-min.js&#34;&gt;raphael.js&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;http://flowchart.js.org/flowchart-latest.js&#34;&gt;flowchart.js&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;绘制时序图需要以下三个库：&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;a href=&#34;https://bramp.github.io/js-sequence-diagrams/js/raphael-min.js&#34;&gt;raphael.js&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;https://bramp.github.io/js-sequence-diagrams/js/underscore-min.js&#34;&gt;underscore.js&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;https://bramp.github.io/js-sequence-diagrams/js/sequence-diagram-min.js&#34;&gt;sequence-diagram.js&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;引入方法很简单，添加到 mkdocs.yml 的 extra_javascript 属性即可，例子如下：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;extra_javascript:
-    - https://bramp.github.io/js-sequence-diagrams/js/raphael-min.js
-    - https://bramp.github.io/js-sequence-diagrams/js/underscore-min.js
-    - https://bramp.github.io/js-sequence-diagrams/js/sequence-diagram-min.js
-    - http://flowchart.js.org/flowchart-latest.js
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;也可以将 js 下载到本地，放到项目文件夹的 docs/js 文件夹下，引入例子：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;extra_javascript:
-	- js/raphael-min.js
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h4 id=&#34;三-引入三个-javascript-文件&#34;&gt;三、引入三个 JavaScript 文件&lt;/h4&gt;
-
-&lt;p&gt;引入 js 库以后，还需要三个 js 文件。它们的作用是定位到目标 HTML 元素，调用对应的 JS 库，最终绘制成所需要的图。&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;uml-converter.js&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;(function (win, doc) {
-  win.convertUML = function(className, converter, settings) {
-    var charts = doc.querySelectorAll(&amp;quot;pre.&amp;quot; + className),
-        arr = [],
-        i, j, maxItem, diagaram, text, curNode;
-
-    // Is there a settings object?
-    if (settings === void 0) {
-        settings = {};
-    }
-
-    // Make sure we are dealing with an array
-    for(i = 0, maxItem = charts.length; i &amp;lt; maxItem; i++) arr.push(charts[i])
-
-    // Find the UML source element and get the text
-    for (i = 0, maxItem = arr.length; i &amp;lt; maxItem; i++) {
-        childEl = arr[i].firstChild;
-        parentEl = childEl.parentNode;
-        text = &amp;quot;&amp;quot;;
-        for (j = 0; j &amp;lt; childEl.childNodes.length; j++) {
-            curNode = childEl.childNodes[j];
-            whitespace = /^\s*$/;
-            if (curNode.nodeName === &amp;quot;#text&amp;quot; &amp;amp;&amp;amp; !(whitespace.test(curNode.nodeValue))) {
-                text = curNode.nodeValue;
-                break;
-            }
-        }
-
-        // Do UML conversion and replace source
-        el = doc.createElement(&#39;div&#39;);
-        el.className = className;
-        parentEl.parentNode.insertBefore(el, parentEl);
-        parentEl.parentNode.removeChild(parentEl);
-        diagram = converter.parse(text);
-        diagram.drawSVG(el, settings);
-    }
-  }
-})(window, document)
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;ul&gt;
-&lt;li&gt;flow-loader.js&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;(function (doc) {
-  function onReady(fn) {
-    if (doc.addEventListener) {
-      doc.addEventListener(&#39;DOMContentLoaded&#39;, fn);
-    } else {
-      doc.attachEvent(&#39;onreadystatechange&#39;, function() {
-        if (doc.readyState === &#39;interactive&#39;)
-          fn();
-      });
-    }
-  }
-
-  onReady(function(){convertUML(&#39;uml-flowchart&#39;, flowchart);});
-})(document)
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;ul&gt;
-&lt;li&gt;sequence-loader.js&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;(function (doc) {
-  function onReady(fn) {
-    if (doc.addEventListener) {
-      doc.addEventListener(&#39;DOMContentLoaded&#39;, fn);
-    } else {
-      doc.attachEvent(&#39;onreadystatechange&#39;, function() {
-        if (doc.readyState === &#39;interactive&#39;)
-          fn();
-      });
-    }
-  }
-
-  onReady(function(){convertUML(&#39;uml-sequence-diagram&#39;, Diagram, {theme: &#39;simple&#39;});});
-})(document)
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;将以上三个 js 保存至项目文件夹的 docs/js 文件夹内，并在 mkdocs.yml 中引入。引入方法同步骤二。
-至此已经大功告成，此后使用 mkdocs serve 则能将 markdown 文档中的：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;```flow
-xxx
-```
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;以及&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;```sequence
-xxx
-```
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;自动渲染成流程图和时序图。&lt;/p&gt;
-
-&lt;p&gt;&lt;strong&gt;注意：&lt;/strong&gt;该方法不一定对所有 MkDocs 主题生效，默认的主题不生效，readthedocs/bootstrap/bootswatch主题生效。原因可能是各主题模板中添加 extra_javascript 的位置不同。如果使用的主题不生效，可以删除 mkdocs.yml 中添加的 extra_javascript，在每个需要显示流程图/时序图的 markdown 文档末尾处手动加上：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-html&#34;&gt;&amp;lt;script src=&amp;quot;../../js/raphael-min.js&amp;quot;&amp;gt;&amp;lt;/script&amp;gt;
-&amp;lt;script src=&amp;quot;../../js/underscore-min.js&amp;quot;&amp;gt;&amp;lt;/script&amp;gt;
-&amp;lt;script src=&amp;quot;../../js/sequence-diagram-min.js&amp;quot;&amp;gt;&amp;lt;/script&amp;gt;
-&amp;lt;script src=&amp;quot;../../js/uml-converter.js&amp;quot;&amp;gt;&amp;lt;/script&amp;gt;
-&amp;lt;script src=&amp;quot;../../js/sequence-loader.js&amp;quot;&amp;gt;&amp;lt;/script&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;</description>
+&lt;p&gt;&lt;/p&gt;</description>
     </item>
     
     <item>
@@ -524,8 +82,7 @@ xxx
       <pubDate>Tue, 03 Nov 2015 15:27:38 +0800</pubDate>
       
       <guid>https://zhaojames0707.github.io/about/</guid>
-      <description>&lt;p&gt;Python 程序员，熟悉 Java，喜爱 macOS/Linux/Vim。&lt;/p&gt;
-</description>
+      <description>Python 程序员，熟悉 Java，喜爱 macOS/Linux/Vim。</description>
     </item>
     
   </channel>

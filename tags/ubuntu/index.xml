@@ -2,12 +2,15 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Ubuntu on Mission Namek</title>
-    <link>https://zhaojames0707.github.io/tags/ubuntu/index.xml</link>
+    <link>https://zhaojames0707.github.io/tags/ubuntu/</link>
     <description>Recent content in Ubuntu on Mission Namek</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>All rights reserved - 2016</copyright>
-    <atom:link href="https://zhaojames0707.github.io/tags/ubuntu/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Fri, 18 Nov 2016 15:46:18 +0800</lastBuildDate>
+    
+	<atom:link href="https://zhaojames0707.github.io/tags/ubuntu/index.xml" rel="self" type="application/rss+xml" />
+    
     
     <item>
       <title>在 Ubuntu 16.04 中使用 QQ</title>
@@ -15,93 +18,7 @@
       <pubDate>Fri, 18 Nov 2016 15:46:18 +0800</pubDate>
       
       <guid>https://zhaojames0707.github.io/post/ubuntu_qq/</guid>
-      <description>&lt;p&gt;&lt;/p&gt;
-
-&lt;p&gt;工作中经常需要使用 QQ，但是众所周知 Linux 下没有官方版的 QQ。还好在 Wine + Winetricks 的帮助下，使用 QQ 不再是难事。&lt;/p&gt;
-
-&lt;h4 id=&#34;1-安装-wine&#34;&gt;1. 安装 Wine&lt;/h4&gt;
-
-&lt;p&gt;由于系统源中的 Wine 版本可能比较旧，推荐使用 Wine 官方的源。&lt;/p&gt;
-
-&lt;p&gt;如果你使用的是64位系统，需要先启用32位架构：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;sudo dpkg --add-architecture i386
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;然后添加源：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;sudo add-apt-repository ppa:wine/wine-builds
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;更新：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;sudo apt-get update
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;安装 Wine：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;sudo apt-get install --install-recommends winehq-devel
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;以上内容来自 Wine 官方 Wiki：&lt;a href=&#34;https://wiki.winehq.org/Ubuntu&#34;&gt;https://wiki.winehq.org/Ubuntu&lt;/a&gt;&lt;/p&gt;
-
-&lt;h4 id=&#34;2-安装-winetricks-zh&#34;&gt;2. 安装 Winetricks-zh&lt;/h4&gt;
-
-&lt;p&gt;Winetricks 是一个脚本，能很方便的下载 Windows 程序所需的库文件，并对已知问题提供了 work around，非常方便；Winetricks-zh 在 Winetricks 的基础上，提供了很多国内常用软件的支持（例如QQ）。&lt;/p&gt;
-
-&lt;p&gt;Winetricks-zh 的 GitHub 地址：&lt;a href=&#34;https://github.com/hillwoodroc/winetricks-zh&#34;&gt;https://github.com/hillwoodroc/winetricks-zh&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;Clone Winetricks-zh 项目：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;git clone git@github.com:hillwoodroc/winetricks-zh.git
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;将 wintricks-zh 放到 /usr/bin/&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;sudo cp winetricks-zh/winetricks-zh /usr/bin/
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h4 id=&#34;3-安装-qq&#34;&gt;3. 安装 QQ&lt;/h4&gt;
-
-&lt;p&gt;命令行输入：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;winetricks-zh qq
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;如果是第一次使用 winetricks-zh 的话，可能会需要安装依赖库，在弹出的窗口选择中选择安装即可。&lt;/p&gt;
-
-&lt;p&gt;随后 Winetricks-zh 开始安装 QQ，安装过程中会从 &lt;a href=&#34;http://web.archive.org&#34;&gt;http://web.archive.org&lt;/a&gt; 下载 W2KSP4_EN.EXE 和 InstMsiW.exe，而该网站由于不可描述的原因在大陆无法访问。建议先停止安装程序，使用科学上网工具下载到本地，然后：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;cp W2KSP4_EN.EXE ~/.cache/winetricks/win2ksp4/
-cp InstMsiW.exe ~/.cache/winetricks/msls31/
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;完成后，再次执行：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;winetricks-zh qq
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;正常的话接下来会弹出 QQ 安装窗口，有可能中文会是方框，不用担心，安装即可。&lt;/p&gt;
-
-&lt;p&gt;安装完成后，按下 Win 键，在搜索框中输入 QQ 便会出现 QQ 的启动程序，点击启动即可运行。&lt;/p&gt;
-
-&lt;p&gt;至此已基本完成，但是在对话窗口的输入框内输入中文时，文字会变成方框，文字发出后恢复正常。&lt;/p&gt;
-
-&lt;h4 id=&#34;4-解决输入框显示问题&#34;&gt;4. 解决输入框显示问题&lt;/h4&gt;
-
-&lt;p&gt;首先在终端中输入：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;export LC_ALL=zh_CN.UTF-8
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;如果有报错，则需要安装中文语言包：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;sudo apt-get -y install language-pack-zh-hans
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;然后编辑 QQ 的启动器文件，该文件位于&lt;code&gt;~/.local/share/applications/wine/Programs/腾讯软件/QQ/腾讯QQ.desktop&lt;/code&gt;，将&lt;code&gt;Exec=env WINEPRFIX...&lt;/code&gt;改为&lt;code&gt;Exce=env LC_ALL=zh_CN.UTF-8 WINEPRFIX...&lt;/code&gt;，保存，然后再次启动 QQ，问题应该解决了。&lt;/p&gt;
-
-&lt;p&gt;已知问题：查看讨论组的历史消息，会导致 QQ 崩溃，这个问题有待以后解决。&lt;/p&gt;</description>
+      <description>&lt;p&gt;&lt;/p&gt;</description>
     </item>
     
     <item>
@@ -112,39 +29,7 @@ cp InstMsiW.exe ~/.cache/winetricks/msls31/
       <guid>https://zhaojames0707.github.io/post/ubuntu_keepass2/</guid>
       <description>&lt;p&gt;最近开始使用 KeePass2，遇到了中文显示为方块的问题。&lt;/p&gt;
 
-&lt;p&gt;&lt;/p&gt;
-
-&lt;p&gt;最近我的京东和支付宝接连被人登陆，使我不得不重视起密码安全问题，下定决心使用密码管理软件，自动生成并记录强密码。&lt;/p&gt;
-
-&lt;p&gt;在了解了市面上的若干个密码管理软件以后，我选择了 KeePass2，因为它支持多平台，并且开源。我在 Mac 上使用 MacPass，iPhone 上使用 MiniKeePass，Ubuntu上则使用 KeePass2。&lt;/p&gt;
-
-&lt;p&gt;一开始一切正常，直到我在 KeePass2 上输入了中文，中文均显示为方块。在网上参考了众多讨论后，我找到了在我电脑上的解决办法。
-&lt;strong&gt;注&lt;/strong&gt;: 我的系统是 Ubuntu 16.04 64-bit，KeePass 版本为 2.34。&lt;/p&gt;
-
-&lt;h4 id=&#34;1-下载-keepass2-语言包&#34;&gt;1. 下载 KeePass2 语言包&lt;/h4&gt;
-
-&lt;p&gt;KeePass 的&lt;a href=&#34;http://keepass.info/translations.html&#34;&gt;官网&lt;/a&gt;提供了各种语言的语言包，下载中文2.x版本语言包后解压到&lt;code&gt;~/.local/share/KeePass/&lt;/code&gt;目录下，重启 KeePass 后设置 View-&amp;gt;Change Language，选择 Simplified Chinese 即可。&lt;/p&gt;
-
-&lt;h4 id=&#34;2-修改启动脚本&#34;&gt;2. 修改启动脚本&lt;/h4&gt;
-
-&lt;p&gt;参考&lt;a href=&#34;http://wenliangcan.github.io/blog/2014/04/20/keepass-cjk-fonts-displaying/&#34;&gt;博客&lt;/a&gt;，修改&lt;code&gt;/usr/bin/keepass2&lt;/code&gt;，加入&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;export LANG=zh_CN.utf8
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h4 id=&#34;3-修改系统字体设置&#34;&gt;3. 修改系统字体设置&lt;/h4&gt;
-
-&lt;p&gt;参考&lt;a href=&#34;http://forum.ubuntu.org.cn/viewtopic.php?f=8&amp;amp;t=473678&#34;&gt;FAQ&lt;/a&gt;，修改&lt;code&gt;/etc/fonts/conf.avail/65-nonlatin.conf&lt;/code&gt;，添加&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-xml&#34;&gt;   &amp;lt;alias&amp;gt;
-      &amp;lt;family&amp;gt;Ubuntu&amp;lt;/family&amp;gt;
-      &amp;lt;prefer&amp;gt;
-         &amp;lt;family&amp;gt;sans-serif&amp;lt;/family&amp;gt;
-      &amp;lt;/prefer&amp;gt;
-   &amp;lt;/alias&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;在进行上述操作后，重启 KeePass2，应该就可以正常显示中文了。&lt;/p&gt;</description>
+&lt;p&gt;&lt;/p&gt;</description>
     </item>
     
   </channel>

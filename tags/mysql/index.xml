@@ -2,12 +2,15 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Mysql on Mission Namek</title>
-    <link>https://zhaojames0707.github.io/tags/mysql/index.xml</link>
+    <link>https://zhaojames0707.github.io/tags/mysql/</link>
     <description>Recent content in Mysql on Mission Namek</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>All rights reserved - 2016</copyright>
-    <atom:link href="https://zhaojames0707.github.io/tags/mysql/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Wed, 29 Jun 2016 23:22:18 +0800</lastBuildDate>
+    
+	<atom:link href="https://zhaojames0707.github.io/tags/mysql/index.xml" rel="self" type="application/rss+xml" />
+    
     
     <item>
       <title>解决 django 中 mysql gone away 的问题</title>
@@ -17,71 +20,7 @@
       <guid>https://zhaojames0707.github.io/post/django_mysql_gone_away/</guid>
       <description>&lt;p&gt;最近在项目中，我使用 Django Command 模块写了一个脚本，处理从 MQ 发来的消息，并入库。在测试过程中，程序运行良好，但是在程序上线并运行一段时间后，出现了以下错误：&lt;/p&gt;
 
-&lt;p&gt;&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;OperationalError: (2006, &#39;MySQL server has gone away&#39;)
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id=&#34;发现问题&#34;&gt;发现问题&lt;/h3&gt;
-
-&lt;p&gt;经过一段时间的排查后，我发现了问题的原因：因为我要入库的消息并不频繁，所以我的程序的入库操作之间可能会间隔一段时间，而当这段时间大于 MySQL 配置的超时时间后，MySQL 便会主动断开与该程序的连接；此时，程序做数据库相关操作，则会发现数据库连接已经失效，因而报 &lt;code&gt;MySQL server has gone away&lt;/code&gt;的异常。&lt;/p&gt;
-
-&lt;p&gt;查看 MySQL 配置的超时时间方法为：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;show variables like &#39;wait_timeout&#39;;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id=&#34;分析问题&#34;&gt;分析问题&lt;/h3&gt;
-
-&lt;p&gt;在网上搜索相关问题后，我发现有很多人问过相关问题，而 Django 官网的这个&lt;a href=&#34;https://code.djangoproject.com/ticket/21597#comment:29&#34;&gt;讨论&lt;/a&gt;，给了我很大帮助。&lt;/p&gt;
-
-&lt;p&gt;处理方法有两个：&lt;/p&gt;
-
-&lt;p&gt;1) 每次调用完 Model 后，手动关闭 connection&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.db import connection
-
-connection.close()
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;2) 调整数据库的超时时间(不推荐！)&lt;/p&gt;
-
-&lt;p&gt;但是，这两个都不适合我的程序：&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;方法1是针对 Model 操作间隔一定很长的情况，如果某个时间段内需要很频繁的操作数据库，那么频繁关闭-新建数据库连接无疑是低效的。而且，connection 是与默认的数据库的连接，即 settings 中定义的 default 数据库。如果项目配置了多个数据库(列如主从数据库)，那么 &lt;code&gt;connection.close()&lt;/code&gt;则不能与关闭其他数据库的连接，问题仍未解决。&lt;/li&gt;
-&lt;li&gt;方法2直接修改数据库超时时间，很容易影响别的服务，会带来很多潜在的问题。&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;针对我的情况，我参考了 Django 源码涉及数据库连接维护的部分。&lt;/p&gt;
-
-&lt;p&gt;在 &lt;code&gt;django.db.__init__.py&lt;/code&gt; 中，有以下代码片段:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;# Register an event to reset transaction state and close connections past
-# their lifetime.
-def close_old_connections(**kwargs):
-    for conn in connections.all():
-        conn.close_if_unusable_or_obsolete()
-signals.request_started.connect(close_old_connections)
-signals.request_finished.connect(close_old_connections)
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;可见，Django 将&lt;strong&gt;请求开始&lt;/strong&gt;和&lt;strong&gt;请求结束&lt;/strong&gt;信号绑定给了 &lt;code&gt;close_old_connections&lt;/code&gt;函数，每当有请求开始和结束以后，Django 都会检查目前有没有失效的连接，如果有的话就将其关闭。通过这种办法，Django 保证处理请求时，数据库连接都是可用的，不会出现我遇到的问题；而我的程序在涉及 Model 操作时，没有检查连接的有效性，因而出现了题目中的错误。&lt;/p&gt;
-
-&lt;h3 id=&#34;解决问题&#34;&gt;解决问题&lt;/h3&gt;
-
-&lt;p&gt;在定位到问题且知道处理方法后，接下来的工作就非常简单了。
-仿照上述代码，定义函数：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.db import connections
-
-
-def close_old_connections():
-    for conn in connections.all():
-        conn.close_if_unusable_or_obsolete()
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;然后在每次 Model 操作前调用&lt;code&gt;close_old_connections()&lt;/code&gt;就解决问题了。&lt;/p&gt;</description>
+&lt;p&gt;&lt;/p&gt;</description>
     </item>
     
   </channel>
